@@ -82,7 +82,6 @@ func (r *TodoStrDB) Delete(userId, strId int) error {
 	return tx.Commit()
 }
 
-// что то не так
 func (r *TodoStrDB) UpdateStr(userId, strId int, input todo.UpdateStrInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
