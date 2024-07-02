@@ -54,11 +54,24 @@ func (r *TodoListDB) GetById(userId, listId int) (todo.TodoList, error) {
 	return list, err
 }
 
-// переделаит запрос через rollback(сейчас удаляет запись только в одной таблице в идеале чтобы удалял из двух(мне кажется так правильнее(попытка на str уже сделана)))
 func (r *TodoListDB) Delete(userId, listId int) error {
-	query := fmt.Sprintf(`DELETE FROM %s tl USING %s ul WHERE tl.list_id = ul.id AND tl.user_id=$1 AND tl.list_id=$2`, usersListsTable, todoListsTable)
-	_, err := r.db.Exec(query, userId, listId)
-	return err
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	deleteUserzList := fmt.Sprintf(`DELETE FROM %s tl WHERE tl.user_id=$1 AND tl.list_id=$2`, usersListsTable)
+	_, err = tx.Exec(deleteUserzList, userId, listId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	deleteTodoList := fmt.Sprintf(`DELETE FROM %s tl WHERE tl.id = $1`, todoListsTable)
+	_, err = tx.Exec(deleteTodoList, listId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 func (r *TodoListDB) Update(userId, listId int, input todo.UpdateListInput) error {
 	setValues := make([]string, 0)

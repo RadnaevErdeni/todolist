@@ -111,6 +111,6 @@ func (h *Handler) deleteList(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, responsestat{
-		Stat: "Ok",
+		Stat: "Successful",
 	})
 }

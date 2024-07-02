@@ -54,27 +54,26 @@ func (r *TodoStrDB) GetById(userId, strId int) (todo.TodoStr, error) {
 
 func (r *TodoStrDB) GetAll(userId, strId int) ([]todo.TodoStr, error) {
 	var str []todo.TodoStr
-	query := fmt.Sprintf(`SELECT ti.id,ti.title,ti.description,ti.done FROM %s ti INNER JOIN %s li ON li.str = ti.id INNER JOIN %s ul ON ul.list_id=li.list WHERE li.list = $1 AND ul.user_id = $2`, todoStrTable, listsStrTable, usersListsTable)
+	query := fmt.Sprintf("SELECT ti.id,ti.title,ti.description,ti.done FROM %s ti INNER JOIN %s li ON li.str = ti.id INNER JOIN %s ul ON ul.list_id=li.list WHERE li.list = $1 AND ul.user_id = $2", todoStrTable, listsStrTable, usersListsTable)
 	if err := r.db.Select(&str, query, strId, userId); err != nil {
 		return nil, err
 	}
 	return str, nil
 }
 
-// переделать запрос(плохо работает)
 func (r *TodoStrDB) Delete(userId, strId int) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
 	}
-	deleteStrQuery := fmt.Sprintf(`DELETE FROM %s ts USING %s ls, %s ul WHERE ls.str = ts.id AND ls.list = ul.list_id AND ul.user_id = $1 AND ts.id =$2`, todoStrTable, listsStrTable, usersListsTable)
-	_, err = tx.Exec(deleteStrQuery, userId, strId)
+	deleteListStr := fmt.Sprintf("DELETE FROM %s ls USING %s ul WHERE ls.list = ul.list_id AND ul.user_id = $1 AND ls.str =$2", listsStrTable, usersListsTable)
+	_, err = tx.Exec(deleteListStr, userId, strId)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	delete2StrQuery := fmt.Sprintf("DELETE FROM %s ls USING %s ts, %s ul WHERE ls.str = ts.id   AND ls.list = ul.list_id AND ul.user_id = $1 AND ts.id =$2 ", listsStrTable, todoStrTable, usersListsTable)
-	_, err = tx.Exec(delete2StrQuery, userId, strId)
+	deleteStr := fmt.Sprintf("DELETE FROM %s WHERE id =$1 ", todoStrTable)
+	_, err = tx.Exec(deleteStr, strId)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -109,7 +108,7 @@ func (r *TodoStrDB) UpdateStr(userId, strId int, input todo.UpdateStrInput) erro
 
 	query := fmt.Sprintf("UPDATE %s ts SET %s FROM %s ls, %s ul	WHERE ts.id = ls.str AND ls.list = ul.list_id AND ul.user_id = $%d AND ts.id = $%d",
 		todoStrTable, setQuery, listsStrTable, usersListsTable, argId, argId+1)
-	args = append(args, strId, userId)
+	args = append(args, userId, strId)
 
 	_, err := r.db.Exec(query, args...)
 	return err
