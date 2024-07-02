@@ -59,6 +59,12 @@ func (r *TodoListDB) Delete(userId, listId int) error {
 	if err != nil {
 		return err
 	}
+	deleteStrList := fmt.Sprintf(`DELETE FROM %s tl WHERE tl.user_id=$1 AND tl.list_id=$2`, usersListsTable)
+	_, err = tx.Exec(deleteStrList, userId, listId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	deleteUserzList := fmt.Sprintf(`DELETE FROM %s tl WHERE tl.user_id=$1 AND tl.list_id=$2`, usersListsTable)
 	_, err = tx.Exec(deleteUserzList, userId, listId)
 	if err != nil {
